@@ -1,0 +1,124 @@
+services:
+  elasticsearch:
+    image: elasticsearch:7.17.27
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    networks:
+      - demo-network
+    healthcheck:
+      test: curl -s http://localhost:9200/_cluster/health >/dev/null || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - demo-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  producer:
+    build:
+      context: ./data-producer
+      dockerfile: Dockerfile
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    networks:
+      - demo-network
+    ports:
+      - "8091:8080"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    command:
+      - --reload
+    develop:
+      watch:
+        - action: sync
+          path: ./data-producer/src
+          target: /app
+          ignore:
+            - .venv
+            - __pycache__
+        - action: rebuild
+          path: ./data-producer/requirements.txt
+
+  relay:
+    build:
+      context: ./outbox-relay
+      dockerfile: Dockerfile
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - demo-network
+    ports:
+      - "8092:8080"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command:
+      - --reload
+    develop:
+      watch:
+        - action: sync
+          path: ./outbox-relay/src
+          target: /app
+          ignore:
+            - .venv
+            - __pycache__
+        - action: rebuild
+          path: ./outbox-relay/requirements.txt
+
+  consumer:
+    build:
+      context: ./rabbit-consumer
+      dockerfile: Dockerfile
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    networks:
+      - demo-network
+    ports:
+      - "8093:8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./rabbit-consumer/src
+          target: /app
+          ignore:
+            - .venv
+            - __pycache__
+        - action: rebuild
+          path: ./rabbit-consumer/requirements.txt
+
+
+  # kibana:
+  #   image: kibana:7.17.27
+  #   environment:
+  #     - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+  #   ports:
+  #     - "5601:5601"
+  #   depends_on:
+  #     elasticsearch:
+  #       condition: service_healthy
+  #   networks:
+  #     - demo-network
+
+networks:
+  demo-network:
