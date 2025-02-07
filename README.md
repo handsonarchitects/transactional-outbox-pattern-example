@@ -1,5 +1,10 @@
 # Transactional Outbox Pattern with Elasticsearch and RabbitMQ in Python
 
+This example demonstrates how to implement the Transactional Outbox Pattern using Elasticsearch and RabbitMQ in Python.
+
+![](transactional-outbox-pattern.png)
+
+
 ## Running the example
 ```bash
 docker compose build
