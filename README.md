@@ -26,7 +26,7 @@ Use `sh monitor.sh` to monitor the status of each service and Elasticsearch/Rabb
 
 Base scenario:
 1. Check the items in Elasticsearch: http://localhost:9200/auction_items/_search
-2. Show queues in RabbitMQ: http://localhost:15672/#/queues
+2. Show queues in RabbitMQ: http://localhost:15672/#/queues (`guest`/`guest`)
 3. Show results of the monitoring script.
 4. Publish some items: http://localhost:8091/add-items/10
 5. Observe the changes and how producer, relay, and consumer interact.
