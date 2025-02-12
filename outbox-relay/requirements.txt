@@ -1,5 +1,5 @@
-aio_pika
-aiofiles
-apscheduler
-elasticsearch[async]
-fastapi[standard]
+aio_pika==9.5.4
+aiofiles==24.1.0
+apscheduler==3.11.0
+elasticsearch[async]==8.17.1
+fastapi[standard]==0.115.8

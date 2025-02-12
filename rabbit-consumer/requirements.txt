@@ -1,3 +1,3 @@
-aio_pika
-aiofiles
-fastapi[standard]
+aio_pika==9.5.4
+aiofiles==24.1.0
+fastapi[standard]==0.115.8

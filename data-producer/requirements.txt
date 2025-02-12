@@ -1,3 +1,3 @@
-aiofiles
-elasticsearch[async]
-fastapi[standard]
+aiofiles==24.1.0
+elasticsearch[async]==8.17.1
+fastapi[standard]==0.115.8
