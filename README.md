@@ -20,7 +20,6 @@ Use `sh monitor.sh` to monitor the status of each service and Elasticsearch/Rabb
 
 ## Interaction endpoints
 - Add items (via producer): http://localhost:8091/add-items/10
-- Reconnect consumer to RabbitMQ (`FixMe`): http://localhost:8093/refresh-connection
 
 ## Scenarios
 
@@ -54,8 +53,6 @@ docker compose start consumer
 docker compose stop rabbitmq
 docker compose start rabbitmq
 ```
-
-> FixMe: Consumer does not reconnect automatically. You need to manually refresh the connection.
 
 ### Scenario 5: Elasticsearch is down
 ```bash

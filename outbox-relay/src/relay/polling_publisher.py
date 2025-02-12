@@ -11,7 +11,7 @@ from elasticsearch import AsyncElasticsearch
 from . import logger
 
 RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-QUEUE_NAME = "items-updates"
+EXCHANGE_NAME = "items-updates"
 
 ES_HOST = os.environ.get("ES_HOST", "http://elasticsearch:9200")
 INDEX_NAME = "auction_items"
@@ -19,7 +19,7 @@ INDEX_NAME = "auction_items"
 POLLING_LIMIT = int(os.getenv("POLLING_LIMIT", 3))
 POLLING_INTERVAL = int(os.getenv("POLLING_INTERVAL", 5))
 
-STATE_PATH = os.getenv("STATE_PATH", "/app/state_polling.json")
+STATE_PATH = os.getenv("STATE_PATH", "./state.json")
 
 
 class PollingPublisher:
@@ -36,7 +36,7 @@ class PollingPublisher:
         self.connection = await aio_pika.connect_robust(RABBITMQ_URL)
         self.channel = await self.connection.channel()
         self.exchange = await self.channel.declare_exchange(
-            "items-updates", aio_pika.ExchangeType.FANOUT, durable=True
+            EXCHANGE_NAME, aio_pika.ExchangeType.FANOUT, durable=True
         )
         await self.load_state()
 

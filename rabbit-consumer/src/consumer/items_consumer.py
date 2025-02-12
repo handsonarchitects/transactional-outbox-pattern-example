@@ -1,4 +1,5 @@
 import json
+import asyncio
 import os
 from datetime import datetime
 from typing import Any
@@ -11,7 +12,7 @@ from . import logger
 RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 QUEUE_NAME = "items-updates"
 
-STATE_PATH = os.getenv("STATE_PATH", "/app/state_consumer.json")  # State file path
+STATE_PATH = os.getenv("STATE_PATH", "./state.json")  # State file path
 
 
 class ItemsConsumer:
@@ -19,6 +20,7 @@ class ItemsConsumer:
     channel: aio_pika.Channel
     items: dict[str, Any] = {}
     last_update: datetime = None
+    subscribe_task: asyncio.Task | None = None
 
     async def start(self) -> None:
         logger.info("Starting Items Consumer")
@@ -36,25 +38,45 @@ class ItemsConsumer:
         )
         await queue.bind(exchange, routing_key="")
         logger.info(" [*] Waiting for messages...")
-        await queue.consume(self.on_message)
+        self.subscribe_task = asyncio.create_task(self.subscribe(queue))
 
     async def stop(self) -> None:
         """Stops the processor."""
         logger.info("Stopping Items Consumer")
+        
+        # Cancel the subscription task if it exists.
+        if self.subscribe_task:
+            self.subscribe_task.cancel()
+            try:
+                await self.subscribe_task
+            except asyncio.CancelledError:
+                logger.info("Subscription task cancelled.")
+        
         await self.save_state()
         await self.channel.close()
         await self.connection.close()
+        
+    async def subscribe(self, queue: aio_pika.Queue):
+        async with queue.iterator() as queue_iter:
+            async for message in queue_iter:
+                async with message.process():
+                    try:
+                        logger.debug(f"Received headers: {message.headers}")
+                        await self.on_message(message.body)
+                    except Exception as e:  # noqa: BLE001
+                        logger.error(f"Error processing message: {e}")
+                        await message.reject(requeue=True)
+        logger.info(" [*] Waiting for messages...")
 
-    async def on_message(self, message: aio_pika.IncomingMessage):
-        async with message.process():
-            data = json.loads(message.body)
-            logger.info(f"Received data: {data}")
-            self.items[data.get("id")] = {
-                "title": data.get("title"),
-                "created_at": data.get("created_at"),
-            }
-            self.last_update = datetime.now()
-            await self.save_state()
+    async def on_message(self, message: str):
+        data = json.loads(message)
+        logger.info(f"Received data: {data}")
+        self.items[data.get("id")] = {
+            "title": data.get("title"),
+            "created_at": data.get("created_at"),
+        }
+        self.last_update = datetime.now()
+        await self.save_state()
 
     async def get_items(self) -> list[str]:
         return list(self.items.values())
@@ -64,11 +86,6 @@ class ItemsConsumer:
             "items_consumed": len(self.items),
             "last_update": self.last_update,
         }
-
-    async def refresh_connection(self) -> None:
-        """Refresh the connection."""
-        await self.stop()
-        await self.start()
 
     async def save_state(self) -> None:
         """Persists the current state asynchronously, including all items."""

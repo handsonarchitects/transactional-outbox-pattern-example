@@ -31,8 +31,3 @@ async def list_items():
 async def info():
     result = await consumer.info()
     return {"info": result}
-
-@app.get("/refresh-connection")
-async def refresh_connection():
-    await consumer.refresh_connection()
-    return {"status": "OK"}

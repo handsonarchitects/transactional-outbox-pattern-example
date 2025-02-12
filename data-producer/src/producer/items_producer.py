@@ -9,7 +9,7 @@ from elasticsearch import AsyncElasticsearch
 from . import logger
 from datetime import datetime
 
-STATE_PATH = os.getenv("STATE_PATH", "/app/state.json")
+STATE_PATH = os.getenv("STATE_PATH", "./state.json")
 
 ES_HOST = os.environ.get("ES_HOST", "http://elasticsearch:9200")
 INDEX_NAME = "auction_items"
