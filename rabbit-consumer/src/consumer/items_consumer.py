@@ -10,7 +10,7 @@ import aiofiles
 from . import logger
 
 RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-QUEUE_NAME = "items-updates"
+EXCHANGE_NAME = "items-updates"
 
 STATE_PATH = os.getenv("STATE_PATH", "./state.json")  # State file path
 
@@ -29,7 +29,7 @@ class ItemsConsumer:
         self.connection = await aio_pika.connect_robust(RABBITMQ_URL)
         self.channel = await self.connection.channel()
         exchange = await self.channel.declare_exchange(
-            "items-updates", aio_pika.ExchangeType.FANOUT, durable=True
+            EXCHANGE_NAME, aio_pika.ExchangeType.FANOUT, durable=True
         )
 
         arguments = {"x-queue-type": "quorum"}
